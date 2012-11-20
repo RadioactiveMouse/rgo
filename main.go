@@ -38,6 +38,7 @@ func (c Client) Stats() error {
 	if err != nil {
 		return errors.New("Error retrieving stats")
 	}
+	fmt.Println(res.Body)
 	return nil
 }
 
@@ -55,10 +56,47 @@ func (c Client) ListResources() error {
 	return nil
 }
 
+/*
+Function to list the buckets that can be queried against
+*/
+func (c Client) ListBuckets() error {
+	res, err := http.Get(fmt.Sprintf("%s/buckets?buckets=true",c.address))
+	defer res.Body.Close()
+	if err != nil {
+		return errors.New("Error listing the buckets")
+	}
+	fmt.Println(res.Body)
+	return nil
+}
+
+/*
+Function to list the keys that can be queried against
+*/
+func (c Client) ListKeys(bucketname string, stream bool) error {
+	if stream {
+		res, err := http.Get(fmt.Sprintf("%s/buckets/%s/keys?keys=stream",c.address,bucketname))
+		defer res.Body.Close()
+		if err != nil {
+			return errors.New("Error streaming keys")
+		}
+		fmt.Println(res.Body)
+		return nil
+	} else {
+		res, err := http.Get(fmt.Sprintf("%s/buckets/%s/keys?keys=true",c.address,bucketname))
+		defer res.Body.Close()
+		if err != nil {
+			return errors.New("Error listing the keys")
+		}
+		fmt.Println(res.Body)
+		return nil
+	}
+	return nil
+}
+
 func main() {
 	c := new(Client)
 	c.address = "http://localhost:8098"
-	err := c.Stats()
+	err := c.ListResources()
 	if err != nil {
 		log.Fatal(err)
 	}
