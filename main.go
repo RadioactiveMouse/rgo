@@ -5,12 +5,28 @@ import (
 	"fmt"
 	"errors"
 	"log"
+	"encoding/json"
+	"bytes"
 )
 
 // Client struct to instantiate a client to utilise Riak
 type Client struct {
 	http bool
 	address string
+}
+
+// struct to hold bucket details
+type BucketDetails struct {
+	n_val int32
+	allow_mult bool
+	last_write_wins bool
+	//precommit
+	//postcommit
+	r string
+	w string
+	dr string
+	dw string
+	backend string
 }
 
 /*
@@ -58,6 +74,7 @@ func (c Client) ListResources() error {
 
 /*
 Function to list the buckets that can be queried against
+Returns a slice of the buckets in Riak
 */
 func (c Client) ListBuckets() error {
 	res, err := http.Get(fmt.Sprintf("%s/buckets?buckets=true",c.address))
@@ -71,6 +88,7 @@ func (c Client) ListBuckets() error {
 
 /*
 Function to list the keys that can be queried against
+Returns a slice of the keys in a specific bucket
 */
 func (c Client) ListKeys(bucketname string, stream bool) error {
 	if stream {
@@ -89,6 +107,52 @@ func (c Client) ListKeys(bucketname string, stream bool) error {
 		}
 		fmt.Println(res.Body)
 		return nil
+	}
+	return nil
+}
+
+/*
+Function to list the properties of a given bucket
+Returns a slice of bucket properties
+*/
+func (c Client) GetBucketDetails(bucketname string) (BucketDetails,error) {
+	res, err := http.Get(fmt.Sprintf("%s/buckets/%s/props",c.address,bucketname))
+	defer res.Body.Close()
+	if err != nil {
+		return BucketDetails{}, errors.New("Error getting bucket details")
+	}
+	// json decode
+	details := new(BucketDetails)
+	det := json.NewDecoder(res.Body).Decode(details)
+	if det != nil {
+		return BucketDetails{}, errors.New("Error during details parse.")
+	}
+	return *details,nil
+}
+
+/*
+Function to set the Bucket Properties
+Returns an error if not successful otherwise returns nil
+*/
+func (c Client) SetBucketDetails(bucketname string, dets BucketDetails) error {
+	// create the body before piping it into the req (use io.Reader in strings)
+	body, e := json.Marshal(dets)
+	if e != nil {
+		return errors.New("Error converting struct to json")
+	}	
+	req, err := http.NewRequest("PUT",fmt.Sprintf("%s/buckets/%s/props",c.address,bucketname),bytes.NewBuffer(body))
+	if err != nil {
+		return errors.New("Error during request creation. Please check the data you passed to the function.")
+	}
+	res, er := http.DefaultClient.Do(req)
+	if er != nil {
+		return errors.New("Error during PUT request")
+	}
+	if res.StatusCode == http.StatusBadRequest {
+		return errors.New("Error in submitted JSON")
+	}
+	if res.StatusCode == http.StatusUnsupportedMediaType {
+		return errors.New("Unsupported mediatype")
 	}
 	return nil
 }
