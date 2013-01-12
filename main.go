@@ -1,31 +1,32 @@
 package main
 
 import (
-	"net/http"
-	"fmt"
-	"errors"
-	"log"
-	"encoding/json"
 	"bytes"
+	"encoding/json"
+	"errors"
+	"fmt"
+	"io"
+	"log"
+	"net/http"
 )
 
 // Client struct to instantiate a client to utilise Riak
 type Client struct {
-	http bool
+	http    bool
 	address string
 }
 
 // struct to hold bucket details
 type BucketDetails struct {
-	n_val int32
-	allow_mult bool
+	n_val           int32
+	allow_mult      bool
 	last_write_wins bool
 	//precommit
 	//postcommit
-	r string
-	w string
-	dr string
-	dw string
+	r       string
+	w       string
+	dr      string
+	dw      string
 	backend string
 }
 
@@ -34,7 +35,7 @@ Function to Ping the Server over HTTP
 Returns only an error value if it doesn't succeed as per convention
 */
 func (c Client) Ping() error {
-	res, err  := http.Get(fmt.Sprintf("%s/ping",c.address))
+	res, err := http.Get(fmt.Sprintf("%s/ping", c.address))
 	if err != nil {
 		return errors.New("Error during Ping request")
 	}
@@ -48,28 +49,28 @@ func (c Client) Ping() error {
 Function to retrieve a map of the configuration of Riak
 Returns the map of data and an error value
 */
-func (c Client) Stats() error {
-	res, err := http.Get(fmt.Sprintf("%s/stats",c.address))
+func (c Client) Stats() (io.ReadCloser, error) {
+	res, err := http.Get(fmt.Sprintf("%s/stats", c.address))
 	defer res.Body.Close()
 	if err != nil {
-		return errors.New("Error retrieving stats")
+		return nil, errors.New("Error retrieving stats")
 	}
-	fmt.Println(res.Body)
-	return nil
+	//fmt.Println(res.Body) // res is an io.ReadCloser so could return that?
+	return res.Body, nil
 }
 
 /*
 Function to return the location of the resources within the cluster
 Returns a JSON map of the data and the customary error value
 */
-func (c Client) ListResources() error {
-	res, err := http.Get(fmt.Sprintf("%s/",c.address))
+func (c Client) ListResources() (io.ReadCloser, error) {
+	res, err := http.Get(fmt.Sprintf("%s/", c.address))
 	defer res.Body.Close()
 	if err != nil {
-		return errors.New("Error retrieving list of resources")
+		return nil, errors.New("Error retrieving list of resources")
 	}
-	fmt.Println(res.Body)
-	return nil
+	//fmt.Println(res.Body)
+	return res.Body, nil
 }
 
 /*
@@ -77,7 +78,7 @@ Function to list the buckets that can be queried against
 Returns a slice of the buckets in Riak
 */
 func (c Client) ListBuckets() error {
-	res, err := http.Get(fmt.Sprintf("%s/buckets?buckets=true",c.address))
+	res, err := http.Get(fmt.Sprintf("%s/buckets?buckets=true", c.address))
 	defer res.Body.Close()
 	if err != nil {
 		return errors.New("Error listing the buckets")
@@ -92,7 +93,7 @@ Returns a slice of the keys in a specific bucket
 */
 func (c Client) ListKeys(bucketname string, stream bool) error {
 	if stream {
-		res, err := http.Get(fmt.Sprintf("%s/buckets/%s/keys?keys=stream",c.address,bucketname))
+		res, err := http.Get(fmt.Sprintf("%s/buckets/%s/keys?keys=stream", c.address, bucketname))
 		defer res.Body.Close()
 		if err != nil {
 			return errors.New("Error streaming keys")
@@ -100,7 +101,7 @@ func (c Client) ListKeys(bucketname string, stream bool) error {
 		fmt.Println(res.Body)
 		return nil
 	} else {
-		res, err := http.Get(fmt.Sprintf("%s/buckets/%s/keys?keys=true",c.address,bucketname))
+		res, err := http.Get(fmt.Sprintf("%s/buckets/%s/keys?keys=true", c.address, bucketname))
 		defer res.Body.Close()
 		if err != nil {
 			return errors.New("Error listing the keys")
@@ -115,8 +116,8 @@ func (c Client) ListKeys(bucketname string, stream bool) error {
 Function to list the properties of a given bucket
 Returns a slice of bucket properties
 */
-func (c Client) GetBucketDetails(bucketname string) (BucketDetails,error) {
-	res, err := http.Get(fmt.Sprintf("%s/buckets/%s/props",c.address,bucketname))
+func (c Client) GetBucketDetails(bucketname string) (BucketDetails, error) {
+	res, err := http.Get(fmt.Sprintf("%s/buckets/%s/props", c.address, bucketname))
 	defer res.Body.Close()
 	if err != nil {
 		return BucketDetails{}, errors.New("Error getting bucket details")
@@ -127,7 +128,7 @@ func (c Client) GetBucketDetails(bucketname string) (BucketDetails,error) {
 	if det != nil {
 		return BucketDetails{}, errors.New("Error during details parse.")
 	}
-	return *details,nil
+	return *details, nil
 }
 
 /*
@@ -139,8 +140,8 @@ func (c Client) SetBucketDetails(bucketname string, dets BucketDetails) error {
 	body, e := json.Marshal(dets)
 	if e != nil {
 		return errors.New("Error converting struct to json")
-	}	
-	req, err := http.NewRequest("PUT",fmt.Sprintf("%s/buckets/%s/props",c.address,bucketname),bytes.NewBuffer(body))
+	}
+	req, err := http.NewRequest("PUT", fmt.Sprintf("%s/buckets/%s/props", c.address, bucketname), bytes.NewBuffer(body))
 	if err != nil {
 		return errors.New("Error during request creation. Please check the data you passed to the function.")
 	}
@@ -157,10 +158,62 @@ func (c Client) SetBucketDetails(bucketname string, dets BucketDetails) error {
 	return nil
 }
 
+/*
+Function to set a key value pair in the selected bucket
+Returns an error should something fail
+*/
+func (c Client) Store(bucketname string, key string, payload string) error {
+	if bucketname == "" {
+		// return error as we don't know where to store the value
+		return errors.New("You must specify a bucket to store the value into.")
+	}
+	if key != "" {
+		// do PUT with bucketname
+	} else {
+		// assume post without user specified key
+	}
+	return errors.New("An error occured during storage")
+}
+
+/*
+Function to return return the value stored at a specific key
+Returns a string representation of the value
+*/
+func (c Client) Fetch(bucketname string, key string) (string, error) {
+	if bucketname == "" || key == "" {
+		return "", errors.New("Please check you have specified a bucket and a key to fetch from")
+	}
+	res, err := http.Get(fmt.Sprintf("%s/buckets/%s/keys/%s",c.address,bucketname,key))
+	if err != nil {
+		return "", errors.New("Error during HTTP request.")
+	}
+	defer res.Body.Close()
+	if res.StatusCode == http.StatusNotFound {
+		return "", errors.New("Item could not be found")
+	}
+	// ioutil.ReadAll(res.Body)
+	return "", nil
+}
+
+/*
+Function to delete the value associated a with a given key
+Returns an error if the key could not be found
+*/
+func (c Client) Delete(bucketname string, key string) error {
+	// buckets/bucket/keys/key
+	// requires res, err := http.Do(request)
+
+	// handle 204 no content
+	// handle 400 bad request
+	// handle correct return of 404
+	return errors.New("Item could not be deleted.")
+}
+
 func main() {
 	c := new(Client)
 	c.address = "http://localhost:8098"
-	err := c.ListResources()
+	res, err := c.ListResources()
+	fmt.Println(res)
 	if err != nil {
 		log.Fatal(err)
 	}
