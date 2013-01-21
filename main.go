@@ -168,11 +168,11 @@ func (c Client) Store(bucketname string, key string, payload string) error {
 		return errors.New("You must specify a bucket to store the value into.")
 	}
 	if key != "" {
-		// do PUT with bucketname
+		// do PUT with bucketname and fetch vectorclock
 	} else {
 		// assume post without user specified key
 	}
-	return errors.New("An error occured during storage")
+	return errors.New("An error occured during the storage request.")
 }
 
 /*
@@ -201,12 +201,27 @@ Returns an error if the key could not be found
 */
 func (c Client) Delete(bucketname string, key string) error {
 	// buckets/bucket/keys/key
-	// requires res, err := http.Do(request)
-
-	// handle 204 no content
-	// handle 400 bad request
-	// handle correct return of 404
-	return errors.New("Item could not be deleted.")
+	if bucketname == "" || key == "" {
+		return errors.New("Missing bucket or string for delete to be completed.")
+	}	
+	request, er := http.NewRequest("DELETE", fmt.Sprintf("%s/buckets/%s/keys/%s", c.address, bucketname, key), nil)
+	if er != nil {
+		return errors.New("Error during HTTP request formulation.")
+	}
+	res, err := http.DefaultClient.Do(request)
+	if err != nil {
+		errors.New("Error during application of request on the server.")
+	}
+	if res.StatusCode  == http.StatusNoContent {
+		return nil
+	}
+	if res.StatusCode == http.StatusNotFound {
+		return nil
+	}
+	if res.StatusCode == http.StatusBadRequest {
+		return errors.New("400 Bad Request")	
+	}
+	return nil
 }
 
 func main() {
