@@ -122,7 +122,6 @@ func (c Client) GetBucketDetails(bucketname string) (BucketDetails, error) {
 	if err != nil {
 		return BucketDetails{}, errors.New("Error getting bucket details")
 	}
-	// json decode
 	details := new(BucketDetails)
 	det := json.NewDecoder(res.Body).Decode(details)
 	if det != nil {
@@ -164,13 +163,48 @@ Returns an error should something fail
 */
 func (c Client) Store(bucketname string, key string, payload string) error {
 	if bucketname == "" {
-		// return error as we don't know where to store the value
 		return errors.New("You must specify a bucket to store the value into.")
 	}
 	if key != "" {
 		// do PUT with bucketname and fetch vectorclock
+		req, err := http.NewRequest("PUT", fmt.Sprintf("%s/buckets/%s/keys/%s",c.address,bucketname,key), payload)
+		if err != nil {
+			log.Println("Problem with the data specified to store.")
+			return errors.New("Problem with the data payload.")
+		}
+		res, er := http.DefaultClient.Do(req)
+		if er != nil {
+			log.Println("Error during store request")
+			return errors.New("Problem during http request.")
+		}
+		if res.StatusCode == http.StatusOK {
+			return nil
+		}
+		if res.StatusCode == http.StatusNoContent {
+			return nil
+		}
+		if res.StatusCode == http.StatusMultipleChoices {
+			return errors.New("Multiple choices not implemented yet")
+		}
 	} else {
 		// assume post without user specified key
+		req, err := http.NewRequest("POST", fmt.Sprintf("%s/buckets/%s/keys",c.address,bucketname),payload)
+		if err != nil {
+			return errors.New("Error inside the payload specified.")
+		}
+		res, er := http.DefaultClient.Do(req)
+		if er != nil {
+			return errors.New("Error during http request.")
+		}
+		if res.StatusCode == http.StatusOK {
+			return nil
+		}
+		if res.StatusCode == http.StatusNoContent {
+			return nil
+		}
+		if res.StatusCode == http.StatusMultipleChoices {
+			return errors.New("Multiple choices not implemented.")
+		}
 	}
 	return errors.New("An error occured during the storage request.")
 }
