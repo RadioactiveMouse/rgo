@@ -31,6 +31,14 @@ type BucketDetails struct {
 }
 
 /*
+Function to return the body of the request
+Return a string containing the request body
+*/
+func returnBody(body io.ReadCloser)(string) {
+	return (string)ioutil.ReadAll(body)
+}
+
+/*
 Function to Ping the Server over HTTP
 Returns only an error value if it doesn't succeed as per convention
 */
@@ -77,14 +85,13 @@ func (c Client) ListResources() (io.ReadCloser, error) {
 Function to list the buckets that can be queried against
 Returns a slice of the buckets in Riak
 */
-func (c Client) ListBuckets() error {
+func (c Client) ListBuckets() (io.ReadCloser, error) {
 	res, err := http.Get(fmt.Sprintf("%s/buckets?buckets=true", c.address))
 	defer res.Body.Close()
 	if err != nil {
-		return errors.New("Error listing the buckets")
+		return nil, errors.New("Error listing the buckets")
 	}
-	fmt.Println(res.Body)
-	return nil
+	return res.Body, nil
 }
 
 /*
@@ -162,12 +169,13 @@ Function to set a key value pair in the selected bucket
 Returns an error should something fail
 */
 func (c Client) Store(bucketname string, key string, payload string) error {
+	var b = bytes.NewBufferString(payload)
 	if bucketname == "" {
 		return errors.New("You must specify a bucket to store the value into.")
 	}
 	if key != "" {
 		// do PUT with bucketname and fetch vectorclock
-		req, err := http.NewRequest("PUT", fmt.Sprintf("%s/buckets/%s/keys/%s",c.address,bucketname,key), payload)
+		req, err := http.NewRequest("PUT", fmt.Sprintf("%s/buckets/%s/keys/%s",c.address,bucketname,key), *b)
 		if err != nil {
 			log.Println("Problem with the data specified to store.")
 			return errors.New("Problem with the data payload.")
@@ -188,7 +196,7 @@ func (c Client) Store(bucketname string, key string, payload string) error {
 		}
 	} else {
 		// assume post without user specified key
-		req, err := http.NewRequest("POST", fmt.Sprintf("%s/buckets/%s/keys",c.address,bucketname),payload)
+		req, err := http.NewRequest("POST", fmt.Sprintf("%s/buckets/%s/keys",c.address,bucketname), *b)
 		if err != nil {
 			return errors.New("Error inside the payload specified.")
 		}
