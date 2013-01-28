@@ -12,8 +12,8 @@ import (
 
 // Client struct to instantiate a client to utilise Riak
 type Client struct {
-	http    bool
-	address string
+	Transport	string
+	Address	string
 }
 
 // struct to hold bucket details
@@ -36,6 +36,20 @@ Return a string containing the request body
 */
 func returnBody(body io.ReadCloser)(string) {
 	return (string)ioutil.ReadAll(body)
+}
+
+/*
+Function to send the data to the server
+Returns an error on unsuccessful sending otherwise nil
+*/
+func (c Client) send(data interface{}, path string) error {
+	if c.Transport == "proto" {
+		return nil
+	}
+	if c.Transport == "http" {
+		return nil
+	}	
+	return errors.New("Have you set the correct data transport option")
 }
 
 /*
