@@ -6,14 +6,20 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"log"
 	"net/http"
 )
 
 // Client struct to instantiate a client to utilise Riak
 type Client struct {
-	Transport	string
-	Address	string
+	Transport	string // net.Conn?
+	address	string
+}
+
+type Payload struct {
+	type	string // GET, POST, PUT, DELETE
+	path	string
 }
 
 // struct to hold bucket details
@@ -34,22 +40,30 @@ type BucketDetails struct {
 Function to return the body of the request
 Return a string containing the request body
 */
-func returnBody(body io.ReadCloser)(string) {
-	return (string)ioutil.ReadAll(body)
+func returnBody(body io.ReadCloser) (string,error) {
+	bod, err := ioutil.ReadAll(body)
+	if err != nil {
+		return "", errors.New("Could not return body.")
+	}
+	decoded := string(bod)
+	return decoded, nil
 }
 
 /*
 Function to send the data to the server
 Returns an error on unsuccessful sending otherwise nil
 */
-func (c Client) send(data interface{}, path string) error {
+func (c Client) Send(data interface{}, path string) error {
 	if c.Transport == "proto" {
+		// tcp send over socket
 		return nil
 	}
 	if c.Transport == "http" {
+		// http send using path
+		// res, err := http.Get(path)
 		return nil
 	}	
-	return errors.New("Have you set the correct data transport option")
+	return errors.New("Have you set the correct data transport option?")
 }
 
 /*
@@ -57,6 +71,7 @@ Function to Ping the Server over HTTP
 Returns only an error value if it doesn't succeed as per convention
 */
 func (c Client) Ping() error {
+	// err := c.Send(nil,fmt.Sprintf("%s/ping", c.address))
 	res, err := http.Get(fmt.Sprintf("%s/ping", c.address))
 	if err != nil {
 		return errors.New("Error during Ping request")
