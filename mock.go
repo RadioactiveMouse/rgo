@@ -258,7 +258,7 @@ func (c * Client) ListKeys(bucket string, stream bool) (interface{},error) {
 // Get the listing of the bucket properties
 // returns the bucket properties in a list interface
 func (c * Client) GetBucketProperties(bucket string) (interface{}, error) {
-	response, error := http.Get()
+	response, error := http.Get(fmt.Sprintf("%s:%i/buckets/%s",c.Address,c.Port,bucket))
 	if error != nil {
 		return nil, responseError
 	}
@@ -275,7 +275,7 @@ func (c * Client) GetBucketProperties(bucket string) (interface{}, error) {
 // Set the bucket properties
 // returns an error if unsuccessful
 func (c * Client) SetBucketProperties(bucket string) (error) {
-	response, error := http.Get()
+	response, error := http.Get(fmt.Sprintf("%s:%i/buckets/%s",c.Address,c.Port,bucket))
 	if error != nil {
 		return responseError
 	}
