@@ -29,6 +29,8 @@ var (
 	wrongStatusError = errors.New("The status code received did not match the specifcation.")
 )
 
+// Call this function to instantiate a new Client
+// Returns a Client
 func NewClient(address string, port int, type string) (Client,error) {
 	c = new(Client)
 	c.Address = address
@@ -43,6 +45,8 @@ func NewClient(address string, port int, type string) (Client,error) {
 
 // ### Object/Key Operations
 
+// Retrieve the data from the riak database
+// takes a string and a key and returns a Data struct
 func (c * Client) Fetch(bucket string, key string) (Data, error) {
 	if c.Type == "http" {
 		response, error := http.Get(fmt.Sprintf("%s:%i/buckets/%s/keys/%s",c.Address,c.Port,bucket,key))
@@ -64,6 +68,8 @@ func (c * Client) Fetch(bucket string, key string) (Data, error) {
 	}
 }
 
+// Stores the given data in the database
+// Returns the data if return is true
 func (c * Client) Store(d Data, return bool)(Data,error) {
 	if c.Type == "http" {
 		if d.Key == "" {
@@ -119,6 +125,8 @@ func (c * Client) Store(d Data, return bool)(Data,error) {
 	}
 }
 
+// Deletes the value in a bucket at the given key
+// returns an error on failure else assume delete complete
 func (c * Client) Delete(bucket string,key string) (error) {
 	if c.Type == "http" {
 		request, error := http.NewRequest("DELETE", fmt.Sprintf("%s:%i/buckets/%s/keys/%s",c.Address,c.Port,bucket,key))
@@ -143,6 +151,8 @@ func (c * Client) Delete(bucket string,key string) (error) {
 
 // #### Server operations
 
+// Ping the server to ensure it's contactable
+// Returns an error only if the method was unsuccessful
 func (c * Client) Ping() (error) {
 	if c.Type == "http" {
 		response, error := http.Get("%s:%i/ping",c.Address,c.Port)
@@ -157,6 +167,8 @@ func (c * Client) Ping() (error) {
 	}
 }
 
+// Get the full status of the Riak cluster
+// Returns an arbitrary interface representation of the data
 func (c * Client) Status() (interface{}, error) {
 	if c.Type == "http" {
 		response, error := http.Get("%s:%i/status",c.Address,c.Port)
@@ -176,6 +188,8 @@ func (c * Client) Status() (interface{}, error) {
 	}
 }
 
+// Lists the resources in the cluster
+// Returns an arbitrary interface representation of the resources
 func (c * Client) ListResources() (interface{}, error) {
 	if c.Type == "http" {
 		response, err := http.Get(fmt.Sprintf("%s:%i/",c.Address,c.Port),nil)
@@ -193,6 +207,8 @@ func (c * Client) ListResources() (interface{}, error) {
 
 // ### Bucket Operations
 
+// Lists the buckets in a DB (SHOULD NOT BE USED IN PRODUCTION)
+// returns an interface listing the buckets in the database
 func (c * Client) ListBuckets() (interface{},error) {
 	response, error := http.Get(fmt.Sprintf("%s:%i/buckets?buckets=true",c.Address,c.Port))
 	if error != nil {
@@ -206,6 +222,8 @@ func (c * Client) ListBuckets() (interface{},error) {
 	return d, nil
 }
 
+// Lists the keys for a given bucket (SHOULD NOT BE USED IN PRODUCTION)
+// returns an interface listing the keys in a given bucket
 func (c * Client) ListKeys(bucket string, stream bool) (interface{},error) {
 	if stream {
 		response, error := http.Get(fmt.Sprintf("%s:%i/buckets/%s/keys?keys=stream",c.Address,c.Port,bucket))
@@ -237,10 +255,14 @@ func (c * Client) ListKeys(bucket string, stream bool) (interface{},error) {
 	}
 }
 
+// Get the listing of the bucket properties
+// returns the bucket properties in a list interface
 func (c * Client) GetBucketProperties(bucket string) (interface{}, error) {
 
 }
 
+// Set the bucket properties
+// returns an error if unsuccessful
 func (c * Client) SetBucketProperties(bucket string) (error) {
 
 }
