@@ -258,11 +258,29 @@ func (c * Client) ListKeys(bucket string, stream bool) (interface{},error) {
 // Get the listing of the bucket properties
 // returns the bucket properties in a list interface
 func (c * Client) GetBucketProperties(bucket string) (interface{}, error) {
-
+	response, error := http.Get()
+	if error != nil {
+		return nil, responseError
+	}
+	if response.StatusCode == http.StatusOK {
+		var data interface{}
+		if err := json.UnMarshal(response.Body,&data); err {
+			return nil, parseError
+		}
+		return data, nil
+	}
+	return nil, wrongStatusError
 }
 
 // Set the bucket properties
 // returns an error if unsuccessful
 func (c * Client) SetBucketProperties(bucket string) (error) {
-
+	response, error := http.Get()
+	if error != nil {
+		return responseError
+	}
+	if response.StatusCode == http.StatusOK {
+		return nil
+	}
+	return wrongStatusError
 }
