@@ -25,8 +25,8 @@ type Client struct {
 var (
 	requestError = errors.New("Request could not be created.")
 	responseError = errors.New("There was a problem when sending the response.")
-	parseError = errors.New("There was a problem parsing the request.")
-
+	parseError = errors.New("There was a problem parsing the JSON request.")
+	wrongStatusError = errors.New("The status code received did not match the specifcation.")
 )
 
 func NewClient(address string, port int, type string) (Client,error) {
@@ -36,7 +36,7 @@ func NewClient(address string, port int, type string) (Client,error) {
 	if type == "http" || type == "protobuf" {
 		c.Type = type
 	} else {
-		return nil, errors.New("Unrecognised type entered.")
+		return nil, errors.New("Unrecognised type entered. Types are http or protobuf.")
 	}
 	return c, nil
 }
@@ -48,18 +48,18 @@ func (c * Client) Fetch(bucket string, key string) (Data, error) {
 		response, error := http.Get(fmt.Sprintf("%s:%i/buckets/%s/keys/%s",c.Address,c.Port,bucket,key))
 		// set appropriate header values
 		if error != nil {
-			return nil, errors.New("Error creating HTTP request.")
+			return nil, requestError
 		}
 		if response.StatusCode == http.StatusOK {
 			// marshal the json into a Data struct
 			var data Data
 			er := json.Unmarshal(response.Body, &data)
 			if er != nil {
-				return nil, errors.New("Error decoding response from server.")
+				return nil, parseError
 			{
 			return data, nil
 		} else {
-			return nil, errors.New("Non-OK error response returned.")
+			return nil, wrongStatusError
 		}
 	}
 }
@@ -73,20 +73,19 @@ func (c * Client) Store(d Data, return bool)(Data,error) {
 				return nil, errors.New("Problem encoding the data into JSON.")
 			}
 			request,error := http.NewRequest("POST",fmt.Sprintf("%s:%i/buckets/%s/keys",c.Address,c.Port,d.BucketName),encoded)
-			// request, error := http.NewRequest()
 			if error != nil {
-				return nil, errors.New("Error creating HTTP request from Data.")
+				return nil, requestError
 			}
 			response, err := http.DefaultClient.Do(request)
 			if err != nil {
-				return nil, errors.New("Error during HTTP request.")
+				return nil, responseError
 			}
 			if response.StatusCode == http.StatusOK && return == true {
 				// marshal the return into a data struct
 				var data Data
 				er := json.Unmarshal(response.Body, &data)
 				if er != nil {
-					return nil, errors.New("Error decoding response from the server.")
+					return nil, parseError
 				}
 				return data, nil
 			} else {
@@ -100,17 +99,17 @@ func (c * Client) Store(d Data, return bool)(Data,error) {
 			}
 			request, error := http.NewRequest("PUT",fmt.Sprintf("%s:%i/buckets/%s/keys/%s",c.Address,c.Port,d.BucketName,d.Key),encoded)
 			if error != nil {
-				return nil, errors.New("Error creating HTTP request from Data.")
+				return nil, requestError
 			}
 			response, err := http.DefaultClient.Do(request)
 			if err != nil {
-				return nil, errors.New("Error during HTTP request.")
+				return nil, responseError
 			}
 			if response.StatusCode == http.StatusOK && return == true {
 				var data Data
 				er := json.Unmarshal(response.Body,&data)
 				if er := nil {
-					return nil, errors.New("Error decoding response from the server.")
+					return nil, parseError
 				}
 				return data, nil
 			} else {
@@ -126,11 +125,11 @@ func (c * Client) Delete(bucket string,key string) (error) {
 		//request, error := http.NewRequest()
 		// request.Method = "DELETE"
 		if error != nil {
-			return errors.New("Error during request creation. Please check the data you are inputting.")
+			return requestError
 		}
 		response, err := http.DefaultClient.Do(request)
 		if err != nil {
-			return errors.New("Error during request to the server.")
+			return responseError
 		}
 		if response.StatusCode == http.StatusNoContent || response.StatusCode == http.StatusNotFound {
 			// success
@@ -148,12 +147,12 @@ func (c * Client) Ping() (error) {
 	if c.Type == "http" {
 		response, error := http.Get("%s:%i/ping",c.Address,c.Port)
 		if error != nil {
-			return errors.New("Error during HTTP response.")
+			return responseError
 		}
 		if response.StatusCode == http.StatusOK {
 			return nil
 		} else {
-			return errors.New("Non 200 OK response returned.")
+			return wrongStatusError
 		}
 	}
 }
@@ -162,15 +161,17 @@ func (c * Client) Status() (interface{}, error) {
 	if c.Type == "http" {
 		response, error := http.Get("%s:%i/status",c.Address,c.Port)
 		if error != nil {
-			return nil, errors.New("Error during HTTP response.")
+			return nil, responseError
 		}
 		if response.StatusCode == http.StatusOK {
 			var body interface{}
 			err := json.Unmarshal(response.body, &body)
 			if err != nil {
-				return nil, errors.New("Error reading body of the HTTP response.")
+				return nil, parseError
 			}
 			return body, nil
+		} else {
+			return nil, wrongStatusError
 		}
 	}
 }
@@ -179,12 +180,12 @@ func (c * Client) ListResources() (interface{}, error) {
 	if c.Type == "http" {
 		response, err := http.Get(fmt.Sprintf("%s:%i/",c.Address,c.Port),nil)
 		if err != nil {
-			return nil, errors.New("Error during HTTP response.")
+			return nil, responseError
 		}
 		var data inteface{}
 		err = json.Unmarshal(response.Body,&data)
 		if er != nil {
-			return nil, errors.New("Error during reading of HTTP response.")
+			return nil, parseError
 		}
 		return data, nil
 	}
@@ -195,12 +196,12 @@ func (c * Client) ListResources() (interface{}, error) {
 func (c * Client) ListBuckets() (interface{},error) {
 	response, error := http.Get(fmt.Sprintf("%s:%i/buckets?buckets=true",c.Address,c.Port))
 	if error != nil {
-		return nil, errors.New("Error during HTTP response.")
+		return nil, responseError
 	}
 	var d interface{}
 	err := json.Unmarshal(response.Body,&d)
 	if err != nil {
-		return nil, errors.New("Error during parsing of HTTP response.")
+		return nil, parseError
 	}
 	return d, nil
 }
@@ -209,27 +210,27 @@ func (c * Client) ListKeys(bucket string, stream bool) (interface{},error) {
 	if stream {
 		response, error := http.Get(fmt.Sprintf("%s:%i/buckets/%s/keys?keys=stream",c.Address,c.Port,bucket))
 		if error != nil {
-			return nil, errors.New("Error during HTTP request.")
+			return nil, responseError
 		}
 		if response.StatusCode == http.StatusOK {
 			var data interface{}
 			if err := json.Unmarshal(response.Body,&data); err {
-				return nil, errors.New("Error during JSON parsing.")
+				return nil, parseError
 			}
 			return data, nil
 			
 		} else {
-			return nil, errors.New("Non OK status code.")
+			return nil, wrongStatusError
 		}
 	} else {
 		response, error := http.Get(fmt.Sprintf("%s:%i/buckets/%s/keys?keys=true",c.Address,c.Port,bucket))
 		if error != nil {
-			return nil, errors.New("Error during HTTP request.")
+			return nil, responseError
 		}
 		if response.StatusCode == http.StatusOK {
 			var data interface{}
 			if err := json.Unmarshal(response.Body,&data); err {
-				return nil, errors.New("Error during JSON parsing.")
+				return nil, parseError
 			}
 			return data, nil
 		}
