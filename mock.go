@@ -5,14 +5,18 @@ import (
 	"net/http"
 	"bytes"
 	"encoding/json"
+	"errors"
+	"fmt"
 )
 
 type Data struct {
 	Key	string
 	Value	interface{}
-	ContentType	string
-	Vclock	bytes.Buffer
-	Meta	interface{}
+	ContentType	string `Content-Type`
+	Vclock	bytes.Buffer `X-Riak-VClock`
+	Meta	interface{} `X-Riak-Meta-*`
+	ETag	string
+	LastModified	string `Last-Modified`
 	Link	string
 }
 
@@ -20,6 +24,14 @@ type Client struct {
 	Address	string
 	Port	int
 	Type	string
+}
+
+type HTTPError struct {
+	code int
+}
+
+func (h *HTTPError) Error() string {
+	return "rgo: Error during the operation with HTTP code : " + h.code.String()
 }
 
 var (
@@ -31,14 +43,14 @@ var (
 
 // Call this function to instantiate a new Client
 // Returns a Client
-func NewClient(address string, port int, type string) (Client,error) {
-	c = new(Client)
+func NewClient(address string, port int, connType string) (*Client,error) {
+	c := new(Client)
 	c.Address = address
 	c.Port = port
-	if type == "http" || type == "protobuf" {
-		c.Type = type
+	if connType == "http" || connType == "protobuf" {
+		c.Type = connType
 	} else {
-		return nil, errors.New("Unrecognised type entered. Types are http or protobuf.")
+		log.Fatalf("Please specify a correct connection type instead of : " + connType)
 	}
 	return c, nil
 }
@@ -48,29 +60,35 @@ func NewClient(address string, port int, type string) (Client,error) {
 // Retrieve the data from the riak database
 // takes a string and a key and returns a Data struct
 func (c * Client) Fetch(bucket string, key string) (Data, error) {
+	var data Data
 	if c.Type == "http" {
 		response, error := http.Get(fmt.Sprintf("%s:%i/buckets/%s/keys/%s",c.Address,c.Port,bucket,key))
 		// set appropriate header values
 		if error != nil {
-			return nil, requestError
+			return data, requestError
 		}
-		if response.StatusCode == http.StatusOK {
-			// marshal the json into a Data struct
-			var data Data
-			er := json.Unmarshal(response.Body, &data)
-			if er != nil {
-				return nil, parseError
-			{
-			return data, nil
-		} else {
-			return nil, wrongStatusError
+		switch response.StatusCode {
+			case http.StatusOK :
+				// marshal the json into a Data struct
+				er := json.Unmarshal(response.Body, &data)
+				if er != nil {
+					return data, parseError
+				}
+				return data, nil
+			case http.MultipleChoices :
+				// siblings present
+			case http.NotModified :
+				// use with http conditionals
+			default :
+				return data, new(HTTPError){response.StatusCode}
 		}
 	}
 }
 
 // Stores the given data in the database
 // Returns the data if return is true
-func (c * Client) Store(d Data, return bool)(Data,error) {
+func (c * Client) Store(d Data, bucketName string, toReturn bool)(Data,error) {
+	var data Data
 	if c.Type == "http" {
 		if d.Key == "" {
 			// POST request
@@ -78,32 +96,33 @@ func (c * Client) Store(d Data, return bool)(Data,error) {
 			if prob != nil {
 				return nil, errors.New("Problem encoding the data into JSON.")
 			}
-			request,error := http.NewRequest("POST",fmt.Sprintf("%s:%i/buckets/%s/keys",c.Address,c.Port,d.BucketName),encoded)
+			request,error := http.NewRequest("POST",fmt.Sprintf("%s:%i/buckets/%s/keys",c.Address,c.Port,bucketName),encoded)
 			if error != nil {
 				return nil, requestError
 			}
+			// set appropriate headers
 			response, err := http.DefaultClient.Do(request)
 			if err != nil {
 				return nil, responseError
 			}
-			if response.StatusCode == http.StatusOK && return == true {
+			if response.StatusCode == http.StatusOK && toReturn == true {
 				// marshal the return into a data struct
-				var data Data
 				er := json.Unmarshal(response.Body, &data)
 				if er != nil {
 					return nil, parseError
 				}
 				return data, nil
 			} else {
-				return nil, nil
+				return data, nil
 			}
 		} else {
 			// PUT request
 			encoded, prob := json.Marshal(d)
-			if prob := nil {
+			if prob != nil {
 				return nil, errors.New("Error encoding data into JSON.")
 			}
-			request, error := http.NewRequest("PUT",fmt.Sprintf("%s:%i/buckets/%s/keys/%s",c.Address,c.Port,d.BucketName,d.Key),encoded)
+			request, error := http.NewRequest("PUT",fmt.Sprintf("%s:%i/buckets/%s/keys/%s",c.Address,c.Port,bucketName,d.Key),encoded)
+			// set appropriate headers
 			if error != nil {
 				return nil, requestError
 			}
@@ -111,15 +130,14 @@ func (c * Client) Store(d Data, return bool)(Data,error) {
 			if err != nil {
 				return nil, responseError
 			}
-			if response.StatusCode == http.StatusOK && return == true {
-				var data Data
+			if response.StatusCode == http.StatusOK && toReturn == true {
 				er := json.Unmarshal(response.Body,&data)
 				if er := nil {
 					return nil, parseError
 				}
 				return data, nil
 			} else {
-				return nil, nil
+				return data, nil
 			}
 		}
 	}
@@ -135,6 +153,7 @@ func (c * Client) Delete(bucket string,key string) (error) {
 		if error != nil {
 			return requestError
 		}
+		// set appropriate header values
 		response, err := http.DefaultClient.Do(request)
 		if err != nil {
 			return responseError
@@ -149,7 +168,7 @@ func (c * Client) Delete(bucket string,key string) (error) {
 	}
 }
 
-// #### Server operations
+// ### Server operations
 
 // Ping the server to ensure it's contactable
 // Returns an error only if the method was unsuccessful
@@ -196,7 +215,7 @@ func (c * Client) ListResources() (interface{}, error) {
 		if err != nil {
 			return nil, responseError
 		}
-		var data inteface{}
+		var data interface{}
 		err = json.Unmarshal(response.Body,&data)
 		if er != nil {
 			return nil, parseError
