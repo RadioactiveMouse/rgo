@@ -44,6 +44,13 @@ func TestStatus(t * testing.T) {
 
 }
 
+func TestListResources(t * testing.T) {
+	_, err := client.Status()
+	if err != nil {
+		t.Errorf("Error during List Resources command, err : ",err)
+	}
+}
+
 func TestStoreData(t *testing.T) {
 	for _, datum := range storeTests {
 		store, err := client.Store("test",true,&datum.data)

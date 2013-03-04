@@ -148,6 +148,28 @@ func (self *Client) Status() (interface{},error) {
 	return data, parseError
 }
 
+func (self *Client) ListResources() (interface{},error) {
+	path := "/"
+	data := Data{}
+	r := http.Response{}
+	err := self.query("GET",path,nil,&r)
+	if r.StatusCode != 200 {
+		// error
+	} else if err != nil {
+		return nil, err
+	}
+	body, error := ioutil.ReadAll(r.Body)
+	defer r.Body.Close()
+	if error != nil {
+		return nil, error
+	}
+	parseError := json.Unmarshal(body,&data)
+	if parseError != nil {
+		return nil, parseError
+	}
+	return data, parseError
+}
+
 func (self *Client) query(method string, path string, values url.Values, r *http.Response) (error) {
 	// construct the base URL
 	riakurl := fmt.Sprintf("%s:%d",self.Address,self.Port)
