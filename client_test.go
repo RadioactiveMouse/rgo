@@ -45,7 +45,7 @@ func TestStatus(t * testing.T) {
 }
 
 func TestListResources(t * testing.T) {
-	_, err := client.Status()
+	_, err := client.ListResources()
 	if err != nil {
 		t.Errorf("Error during List Resources command, err : ",err)
 	}
@@ -57,6 +57,8 @@ func TestStoreData(t *testing.T) {
 		if err != nil {
 			if datum.pass != false {
 				t.Errorf("Unexpected failure observed : %v",err)
+			} else {
+				fmt.Println("Expected failure occurred")
 			}
 		} else if datum.pass == false {
 			// something got through

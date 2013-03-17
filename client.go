@@ -25,6 +25,7 @@ func (self *Client) Fetch(bucket string, key string) (*Data, error) {
 		return &data, errors.New(fmt.Sprintf("Please specify both a bucket [%v] and a key [%v]",bucket,key))
 	}
 	path := fmt.Sprintf("/buckets/%s/keys/%s",bucket,key)
+	//headers := http.Header{}
 	err := self.query("GET",path,nil,&r)
 	defer r.Body.Close()
 	// check the status codes
@@ -48,6 +49,7 @@ func (self *Client) Delete(bucket string, key string) (error) {
 		return errors.New(fmt.Sprintf("Please specify both a bucket [%v] and a key [%v]",bucket,key))
 	}
 	path := fmt.Sprintf("/buckets/%s/keys/%s",bucket,key)
+	//headers := http.Header{}
 	err := self.query("DELETE",path,nil,&r)
 	if r.StatusCode == 400 {
 		return errors.New(fmt.Sprintf("Error during delete operation, code: %d",r.StatusCode))
@@ -78,15 +80,11 @@ func (self *Client) Store(bucket string, returnBody bool, data *Data) (*Data, er
 	} else {
 		//post
 		path = fmt.Sprintf("/buckets/%s/keys",bucket)
-		values := url.Values{"":{data.value}}
+		values := url.Values{data.key:{data.value}}
 		err := self.query("POST",path,values,&resp)
 		if err != nil {
 			return &returnData, err
 		}
-	}
-
-	if self.Log {
-		fmt.Println("Returned r : ", resp.Body)
 	}
 	
 	// catch errors 400 404
@@ -96,6 +94,7 @@ func (self *Client) Store(bucket string, returnBody bool, data *Data) (*Data, er
 
 	// content-length should always be > 0 as we specify returnbody=true
 	if resp.ContentLength <= 0 {
+		fmt.Printf("Response : %+v \n",resp)
 		return &returnData, errors.New(fmt.Sprintf("Error during store operation, content-length : %d",resp.ContentLength))
 	}
 
@@ -107,9 +106,9 @@ func (self *Client) Store(bucket string, returnBody bool, data *Data) (*Data, er
 	if err != nil {
 		return &returnData, err
 	}	
-	error := json.Unmarshal(body, &returnData)
+	parseError := json.Unmarshal(body, &returnData)
 	
-	return &returnData, error
+	return &returnData, parseError
 }
 
 func (self *Client) Ping() (error) {
@@ -124,7 +123,7 @@ func (self *Client) Ping() (error) {
 
 func (self *Client) Status() (interface{},error) {
 	path := "/stats"
-	data := Data{}
+	data := Status{}
 	r := http.Response{}
 	err := self.query("GET",path,nil,&r)
 	if r.StatusCode == 404 {
@@ -137,20 +136,16 @@ func (self *Client) Status() (interface{},error) {
 	if error != nil {
 		return nil, error
 	}
-	fmt.Println("Before unmarshal : ",&body)
 	parseError := json.Unmarshal(body,&data)
 	if parseError != nil {
 		return nil, parseError
-	}
-	if self.Log {
-		fmt.Println("Status : ", data)
 	}
 	return data, parseError
 }
 
 func (self *Client) ListResources() (interface{},error) {
 	path := "/"
-	data := Data{}
+	data := Resources{}
 	r := http.Response{}
 	err := self.query("GET",path,nil,&r)
 	if r.StatusCode != 200 {
@@ -201,8 +196,13 @@ func (self *Client) query(method string, path string, values url.Values, r *http
 
 	// set the correct headers for the data TODO: needs some sort of ability to change the content-type
 	request.Header.Set("Content-Type","application/json")
-
+	request.Header.Set("Accept","application/json")
+	if self.Log {
+		fmt.Printf("Headers : %+v \n",request.Header)
+	}
+	fmt.Println("RequestLength : ",request.ContentLength)
 	response, err := http.DefaultClient.Do(request)
+	fmt.Println("ResponseLength : ",response.ContentLength)
 	*r = *response
 
 	return err
