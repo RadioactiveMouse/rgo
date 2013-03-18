@@ -53,18 +53,16 @@ func TestListResources(t * testing.T) {
 
 func TestStoreData(t *testing.T) {
 	for _, datum := range storeTests {
-		store, err := client.Store("test",true,&datum.data)
+		store, err := client.Store("test",&datum.data)
 		if err != nil {
 			if datum.pass != false {
 				t.Errorf("Unexpected failure observed : %v",err)
-			} else {
-				fmt.Println("Expected failure occurred")
 			}
 		} else if datum.pass == false {
 			// something got through
 			t.Errorf("Expected an error but didn't observe one")
-		} else if store != &datum.data {
-			t.Errorf("Data returned from the store request did not match that sent. Sent [%v] and received [%v]",datum.data,store)
+		} else if store != datum.data.value {
+			t.Errorf("Data returned from the store request did not match that sent. Sent [%v] and received [%v]",datum.data.value,store)
 		}
 	}
 }
@@ -77,8 +75,8 @@ func TestFetchData(t *testing.T) {
 			if datum.pass != false {
 				t.Errorf("Fetch was supposed to fail but didn't using [%v], err : %v",datum.data.key,err)
 			}
-		} else if fetch.key == "" || fetch.value == "" {
-			t.Errorf("Fetch returned a key or value of empty. Key [%v] | Value [%v]",fetch.key,fetch.value)
+		} else if fetch == "" {
+			t.Errorf("Fetch returned a value of empty. Value [%v]",fetch)
 		}
 	}
 }

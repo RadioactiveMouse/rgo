@@ -2,6 +2,17 @@ package rgo
 
 import ()
 
+type RData struct {
+	bucket      string
+	key         string
+	value       interface{}
+	contentType string
+	vclock      string
+	meta        interface{}
+	links       []string
+	siblings    []string
+}
+
 type Data struct {
 	key   string
 	value string
