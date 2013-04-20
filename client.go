@@ -11,6 +11,7 @@ import (
 	"strings"
 )
 
+// Encapsulate the client to provide struct to attach methods to
 type Client struct {
 	Address string
 	Port    int
@@ -18,6 +19,7 @@ type Client struct {
 	Log     bool
 }
 
+// Fetch a single piece of  data from the Riak cluster
 func (self *Client) Fetch(bucket string, key string) (interface{}, error) {
 	r := http.Response{}
 	if bucket == "" || key == "" {
@@ -37,6 +39,7 @@ func (self *Client) Fetch(bucket string, key string) (interface{}, error) {
 	return string(body), nil
 }
 
+// Delete a single item in a given bucket with a given key from the Riak cluster
 func (self *Client) Delete(bucket string, key string) error {
 	r := http.Response{}
 	if bucket == "" || key == "" {
@@ -54,19 +57,20 @@ func (self *Client) Delete(bucket string, key string) error {
 	return err
 }
 
+// Store a single piece of data in the Riak cluster
 func (self *Client) Store(bucket string, data *Data) (string, error) {
 	// check if the key exists for conditional put/post
 	path := ""
 	resp := http.Response{}
 	// check if the key exists
-	if data.value == "" {
+	if data.Value == "" {
 		return "", errors.New("RGO: no value defined for the key")
 	}
-	if data.key != "" {
+	if data.Key != "" {
 		// put
-		path = fmt.Sprintf("/buckets/%s/keys/%s", bucket, data.key)
+		path = fmt.Sprintf("/buckets/%s/keys/%s", bucket, data.Key)
 		//values := url.Values{{data.value}}
-		body := strings.NewReader(data.value)
+		body := strings.NewReader(data.Value)
 		err := self.query("PUT", path, nil, body, &resp)
 		if err != nil {
 			return "", err
@@ -74,8 +78,8 @@ func (self *Client) Store(bucket string, data *Data) (string, error) {
 	} else {
 		//post
 		path = fmt.Sprintf("/buckets/%s/keys", bucket)
-		//values := url.Values{{data.value}}
-		body := strings.NewReader(data.value)
+		//values := url.Values{{data.Value}}
+		body := strings.NewReader(data.Value)
 		err := self.query("POST", path, nil, body, &resp)
 		if err != nil {
 			return "", err
@@ -94,6 +98,7 @@ func (self *Client) Store(bucket string, data *Data) (string, error) {
 	return string(body), nil
 }
 
+// Check to see if the Riak node is responding to the Client
 func (self *Client) Ping() error {
 	path := "/ping"
 	r := http.Response{}
@@ -104,6 +109,7 @@ func (self *Client) Ping() error {
 	return nil
 }
 
+// Check the status of the Riak Cluster
 func (self *Client) Status() (interface{}, error) {
 	path := "/stats"
 	data := Status{}
@@ -126,6 +132,7 @@ func (self *Client) Status() (interface{}, error) {
 	return data, parseError
 }
 
+// List the different endpoints exposed by the Riak Cluster
 func (self *Client) ListResources() (interface{}, error) {
 	path := "/"
 	data := Resources{}
@@ -148,6 +155,7 @@ func (self *Client) ListResources() (interface{}, error) {
 	return data, parseError
 }
 
+// function encapsulates the query logic of connecting to the database
 func (self *Client) query(method string, path string, values url.Values, body io.Reader, r *http.Response) error {
 	// construct the base URL
 	riakurl := fmt.Sprintf("%s:%d", self.Address, self.Port)
@@ -168,7 +176,6 @@ func (self *Client) query(method string, path string, values url.Values, body io
 
 	if self.Log {
 		fmt.Println("RGO :", method, endpoint.String())
-	//	fmt.Println(values.Encode())
 	}
 
 	request, err := http.NewRequest(method, endpoint.String(), body)

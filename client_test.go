@@ -25,9 +25,13 @@ var(
 		&Datum{Data{"",""}, false}, // should fail due to no key
 		&Datum{Data{"test",""}, true}, // should succeed as test is a valid key
 	}
-	client = Client{Address :"http://127.0.0.1",Port : 8098,Type : "http",Log :true}
+	client = Client{Address :"http://127.0.0.1",Port : 8098,Type : "http",Log :false}
 )
 
+/*
+	Testing for the exposed client methods.
+	Requires a working Riak installation on localhost:8098
+*/
 func TestPing(t * testing.T) {
 	err := client.Ping()
 	if err != nil {
@@ -61,19 +65,19 @@ func TestStoreData(t *testing.T) {
 		} else if datum.pass == false {
 			// something got through
 			t.Errorf("Expected an error but didn't observe one")
-		} else if store != datum.data.value {
-			t.Errorf("Data returned from the store request did not match that sent. Sent [%v] and received [%v]",datum.data.value,store)
+		} else if store != datum.data.Value {
+			t.Errorf("Data returned from the store request did not match that sent. Sent [%v] and received [%v]",datum.data.Value,store)
 		}
 	}
 }
 
 func TestFetchData(t *testing.T) {
 	for _, datum := range fetchTests {
-		fetch, err := client.Fetch("test",datum.data.key)
+		fetch, err := client.Fetch("test",datum.data.Key)
 		if err != nil {
 			// fetch failed
 			if datum.pass != false {
-				t.Errorf("Fetch was supposed to fail but didn't using [%v], err : %v",datum.data.key,err)
+				t.Errorf("Fetch was supposed to fail but didn't using [%v], err : %v",datum.data.Key,err)
 			}
 		} else if fetch == "" {
 			t.Errorf("Fetch returned a value of empty. Value [%v]",fetch)
@@ -83,11 +87,38 @@ func TestFetchData(t *testing.T) {
 
 func TestDeleteData(t *testing.T) {
 	for _, datum := range deleteTests {
-		err := client.Delete("test",datum.data.key)
+		err := client.Delete("test",datum.data.Key)
 		if err != nil {
 			if datum.pass != false {
-				t.Errorf("Delete was supposed to fail but didnt on key [%v], err : %v",datum.data.key,err)
+				t.Errorf("Delete was supposed to fail but didnt on key [%v], err : %v",datum.data.Key,err)
 			}
+		}
+	}
+}
+
+/*
+	Benchmarks for Riak Client interface
+	Requires an active Riak installation like Testing but preferably with at least 5 nodes
+*/
+
+// bench POSTS as no items in bucket bench
+func BenchmarkStore(b *testing.B) {
+	for i:=0;i<b.N;i++ {
+		d := Data{fmt.Sprintf("%d",i),"benched"}
+		result, err := client.Store("bench",&d)
+		if err != nil || result == "" {
+			fmt.Println(err)
+			b.FailNow()
+		}
+	}
+}
+
+// bench GET as items are now in the DB
+func BenchmarkFetch(b *testing.B) {
+	for i:=0;i<b.N;i++ {
+		_, err := client.Fetch("bench",fmt.Sprintf("%d",i))
+		if err != nil {
+			b.FailNow()
 		}
 	}
 }

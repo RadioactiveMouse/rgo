@@ -1,8 +1,7 @@
 package rgo
 
-import ()
-
-type RData struct {
+// data type to store the riak data including the metadata stored in headers
+type rData struct {
 	bucket      string
 	key         string
 	value       interface{}
@@ -13,11 +12,13 @@ type RData struct {
 	siblings    []string
 }
 
+// Data type to encapsulate the data portion of a request
 type Data struct {
-	key   string
-	value string
+	Key   string
+	Value string
 }
 
+// Special structure to enumerate the resources returned from Client.ListResources
 type Resources struct {
 	Riak_kv_wm_buckets     string
 	Riak_kv_wm_index       string
@@ -31,6 +32,7 @@ type Resources struct {
 	Riak_solr_indexer_wm   string
 }
 
+// Special structure to enumerate the structure returned from Client.Status
 type Status struct {
 	Vnode_gets               int
 	Vnode_puts               int
