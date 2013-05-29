@@ -12,3 +12,6 @@ Once completed installation will be by:
 Incomplete with many things broken/not implemented.
 Not suitable for use in development or production.
 
+## License
+
+MIT
