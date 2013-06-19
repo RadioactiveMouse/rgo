@@ -20,7 +20,7 @@ type Client struct {
 }
 
 // Fetch a single piece of  data from the Riak cluster
-func (self *Client) Fetch(bucket string, key string) (interface{}, error) {
+func (self *Client) Fetch(bucket string, key string) ([]byte, error) {
 	r := http.Response{}
 	if bucket == "" || key == "" {
 		return nil, errors.New(fmt.Sprintf("Please specify both a bucket [%v] and a key [%v]", bucket, key))
@@ -36,7 +36,7 @@ func (self *Client) Fetch(bucket string, key string) (interface{}, error) {
 	if err != nil {
 		return nil, err
 	}
-	return string(body), nil
+	return body, nil
 }
 
 // Delete a single item in a given bucket with a given key from the Riak cluster
@@ -46,7 +46,6 @@ func (self *Client) Delete(bucket string, key string) error {
 		return errors.New(fmt.Sprintf("Please specify both a bucket [%v] and a key [%v]", bucket, key))
 	}
 	path := fmt.Sprintf("/buckets/%s/keys/%s", bucket, key)
-	//headers := http.Header{}
 	err := self.query("DELETE", path, nil, nil, &r)
 	if r.StatusCode == 400 {
 		return errors.New(fmt.Sprintf("Error during delete operation, code: %d", r.StatusCode))
@@ -58,8 +57,7 @@ func (self *Client) Delete(bucket string, key string) error {
 }
 
 // Store a single piece of data in the Riak cluster
-func (self *Client) Store(bucket string, data *Data) (string, error) {
-	// check if the key exists for conditional put/post
+func (self *Client) Store(bucket string, data *Data) ([]byte, error) {
 	path := ""
 	resp := http.Response{}
 	// check if the key exists
@@ -95,7 +93,7 @@ func (self *Client) Store(bucket string, data *Data) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	return string(body), nil
+	return body, nil
 }
 
 // Check to see if the Riak node is responding to the Client
@@ -110,7 +108,7 @@ func (self *Client) Ping() error {
 }
 
 // Check the status of the Riak Cluster
-func (self *Client) Status() (interface{}, error) {
+func (self *Client) Status() (Status, error) {
 	path := "/stats"
 	data := Status{}
 	r := http.Response{}
@@ -133,7 +131,7 @@ func (self *Client) Status() (interface{}, error) {
 }
 
 // List the different endpoints exposed by the Riak Cluster
-func (self *Client) ListResources() (interface{}, error) {
+func (self *Client) ListResources() (Resources{}, error) {
 	path := "/"
 	data := Resources{}
 	r := http.Response{}
@@ -153,6 +151,129 @@ func (self *Client) ListResources() (interface{}, error) {
 		return nil, parseError
 	}
 	return data, parseError
+}
+
+// function to list the keys in a given bucket
+func (self * Client) listKeys(name string) ([]string,error) {
+	
+}
+
+// function to list the buckets in a cluster
+func (self * Client) listBuckets() ([]string,error) {
+
+}
+
+// get the properties of a given bucket
+func (self *Client) getBucketProperties(name string) error {
+	return nil
+}
+
+// set the bucket properties
+func (self *Client) setBucketProperties(b Bucket) error {
+	type props struct {
+		n_val	int
+		allow_mult	bool
+		last_write_wins	bool
+		r	string
+		w	string
+		dw	string
+		rw	string
+	}
+	props.n_val = b.nval
+	props.allow_mult = b.allowMult
+	props.last_write_wins = b.lastWriteWins
+	props.r = b.r
+	props.w = b.w
+	props.dw = b.dw
+	props.rw = b.rw
+	// package as single JSON
+	encoded, jsonErr := json.Marshal(props)
+	if jsonErr != nil {
+		return jsonErr
+	} else {
+		// send the properties that were just encoded to the server
+	}
+}
+
+// reset bucket properties
+func (self *Client) resetBucketProperties(name string) error {
+	return nil
+}
+
+func (self *Client) Bucket(name string) (*Bucket) {
+	b := new(Bucket)
+	b.Name = name
+	b.Client = self
+	return b
+}
+
+type RiakResponse struct {
+	StatusCode	int
+	Body	[]byte
+	ContentType	string
+}
+
+// query
+func (self *Client) httpQuery(method string, path string, bucket Bucket, caller string, data Data) (RiakResponse,error) {
+	// construct base url
+	riakurl := fmt.Sprintf("%s:%d",self.Address,self.Port)
+	endpoint, urlErr := url.Endpoint(riakurl)
+	if urlErr != nil {
+		return nil, urlErr
+	}
+	endpoint.Path = path
+	// create the request so we can add and modify it before sending
+	request, err := http.NewRequest(method,endpoint.String(),nil)
+	switch caller
+		case "store":
+			// make sure content-type is set here
+			request.Header.Set("Content-Type", data.ContentType)
+			// ensure that the body is always returned
+			returnBod := url.Values{"returnbody": {"true"}}
+			endpoint.RawQuery = returnBod.Encode()
+			if method == "PUT" {
+				// in place update
+			} else {
+				// new value
+			}
+		case "bucketprops":
+			// content-type = application/json
+			request.Header.Set("Content-Type", "application/json")
+			if method == "PUT" {
+				// bucket update
+			} else if method == "DELETE" {
+				// bucket props reset
+			} else {
+				// assume GET
+			}
+		case "delete":
+			// delete using the bucket name
+		case "fetch":
+			// fetch has specific key
+			// accept header *
+		case default:
+			// generic GET for PING, LISTRESOURCES etc
+	// actually execute the prepackaged query
+	response, respError := http.DefaultClient.Do(query)
+	if respError != nil {
+		return nil, respError
+	}
+	// parse the required values into the RiakResponse for passing back to the caller function
+	rr := RiakResponse{}
+	bod, ioErr := ioutil.ReadAll(response.Body)
+	if ioErr != nil {
+		// error with body
+		return rr, ioErr
+	}
+	rr.Body = bod
+	return rr, nil
+}
+
+// function to create the request
+func (self * Client) createRequest(b Bucket, d Data) http.Request {
+	// generate the request object
+	// attach the content type as stored in d
+	
 }
 
 // function encapsulates the query logic of connecting to the database

@@ -1,21 +1,19 @@
 package rgo
 
 // data type to store the riak data including the metadata stored in headers
-type rData struct {
+type Data struct {
 	bucket      string
 	key         string
-	value       interface{}
+	value       []byte
 	contentType string
 	vclock      string
 	meta        interface{}
 	links       []string
 	siblings    []string
-}
-
-// Data type to encapsulate the data portion of a request
-type Data struct {
-	Key   string
-	Value string
+	r           int
+	w           int
+	dw          int
+	dr          int
 }
 
 // Special structure to enumerate the resources returned from Client.ListResources
