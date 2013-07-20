@@ -24,8 +24,11 @@ type Bucket struct {
 	Function to store data in the bucket
 	Returns : Error if store could not be completed
 */
-func (b*Bucket) Store(data interface{}) ([]byte,error) {
-	return b.Client.Store(b.Name,data)
+func (b*Bucket) Store(key string, data interface{}) ([]byte,error) {
+	d := Data{}
+	d.key = key
+	d.value = data
+	return b.Client.Store(b.Name,&d)
 }
 
 /*
@@ -74,11 +77,11 @@ func (b*Bucket) GetBucketProperties() error {
 	Function to set the bucket specfic properties
 	Returns : Error if set operation fails
 */
-func (b*Bucket) UpdateBucketProperties() error {
-	if !isQuorumType(b.p) {
+func (b*Bucket) UpdateBucketProperties(prop interface{}) error {
+	if !b.isQuorumType(prop) {
 		return errors.New("Bucket property p is not a valid quorum value")
 	}
-	return b.Client.setBucketProperties(b.Name)
+	return b.Client.setBucketProperties(*b)
 }
 
 /*
@@ -94,11 +97,11 @@ func (b*Bucket) ResetBucketProperties() error {
 	Returns : true if quorum is valid otherwise false
 */
 func (b*Bucket) isQuorumType(value interface{}) bool {
-	if str, tick := value.(string) {
+	if str, tick := value.(string); tick {
 		if str == "all" || str == "one" || str == "quorum" {
 			return true
 		}
-	} else if num, ok := value.(int) {
+	} else if num, ok := value.(int); ok {
 		if num > 0 && num <= b.nval {
 			return true
 		}
