@@ -12,6 +12,12 @@ Once completed installation will be by:
 Incomplete with many things broken/not implemented.
 Not suitable for use in development or production.
 
+## Features
+Rgo uses the very familiar idea within Riak of being centered around Buckets. So creating/getting a bucket and then storing a value to the bucket can be done like this.
+
+	newBucket := rgo.Bucket("test")
+	newBucket.Store("key","value")
+
 ## License
 
 MIT
