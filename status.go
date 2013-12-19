@@ -1,36 +1,6 @@
 package rgo
 
-// data type to store the riak data including the metadata stored in headers
-type Data struct {
-	bucket      string
-	key         string
-	value       []byte
-	contentType string
-	vclock      string
-	meta        interface{}
-	links       []string
-	siblings    []string
-	r           int
-	w           int
-	dw          int
-	dr          int
-}
-
-// Special structure to enumerate the resources returned from Client.ListResources
-type Resources struct {
-	Riak_kv_wm_buckets     string
-	Riak_kv_wm_index       string
-	Riak_kv_wm_link_walker string
-	Riak_kv_wm_mapred      string
-	Riak_kv_wm_object      string
-	Riak_kv_wm_ping        string
-	Riak_kv_wm_props       string
-	Riak_kv_wm_stats       string
-	Riak_solr_searcher_wm  string
-	Riak_solr_indexer_wm   string
-}
-
-// Special structure to enumerate the structure returned from Client.Status
+// Special structure to enumerate the structure returned from Connection.Status
 type Status struct {
 	Vnode_gets               int
 	Vnode_puts               int
