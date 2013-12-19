@@ -12,13 +12,13 @@ func expect(t *testing.T, given interface{}, expected interface{}) {
 }
 
 func client() *Client {
-	return NewClient("213.5.183.10:49155")
+	return NewClient("127.0.0.1:8098")
 }
 
 func TestGetConnection(t *testing.T) {
 	cl := client()
 	conn := cl.GetConnection()
-	expect(t, conn.address, "213.5.183.10:49155")
+	expect(t, conn.address, "127.0.0.1:8098")
 }
 
 func TestClientConnectionPing(t *testing.T) {

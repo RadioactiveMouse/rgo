@@ -4,7 +4,7 @@ import (
 	"testing"
 )
 
-var testAddress string = "213.5.183.10:49155"
+var testAddress string = "127.0.0.1:8098"
 
 func TestNodePing(t *testing.T) {
 	c := NewConnection(testAddress)
