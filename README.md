@@ -48,15 +48,15 @@ Object/Key Operations
 * Conditional queries are not supported in this version
 
 ## Features
-Rgo uses the very familiar idea within Riak of being centered around Buckets. So creating/getting a bucket and then storing a value to the bucket can be done like this.
-''' go
+Rgo uses the very familiar idea within Riak of being centered around Buckets. So creating/getting a bucket and then storing a value to the bucket can be achieved like this.
+``` go
 	client := rgo.NewClient("127.0.0.1:8098")
 	newBucket := client.Bucket("test")
 	obj := newBucket.Object()
 	obj.Key = "testvalue"
 	obj.Value = []byte("storedValue")
 	obj.Store()
-'''
+```
 ## License
 
 MIT
