@@ -49,14 +49,14 @@ Object/Key Operations
 
 ## Features
 Rgo uses the very familiar idea within Riak of being centered around Buckets. So creating/getting a bucket and then storing a value to the bucket can be done like this.
-<code>
+''' go
 	client := rgo.NewClient("127.0.0.1:8098")
 	newBucket := client.Bucket("test")
 	obj := newBucket.Object()
 	obj.Key = "testvalue"
 	obj.Value = []byte("storedValue")
 	obj.Store()
-</code>
+'''
 ## License
 
 MIT
