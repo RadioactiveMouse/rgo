@@ -10,7 +10,7 @@ Recommended only for development of the library in the current state.
 
 Install using :
 
-<code>go get http://github.com/RadioactiveMouse/rgo</code>
+go get [github.com/RadioactiveMouse/rgo](http://github.com/RadioactiveMouse/rgo)
 
 ##Current Status
 
