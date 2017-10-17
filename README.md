@@ -1,18 +1,18 @@
-#rgo
+# rgo
 
 Riak Go binding for HTTP support.
 
 Current Version : 0.1
 
-##Installation
+## Installation
 
 Recommended only for development of the library in the current state.
 
 Install using :
 
-<code>go get http://github.com/RadioactiveMouse/rgo</code>
+<code>go get github.com/RadioactiveMouse/rgo</code>
 
-##Current Status
+## Current Status
 
 Not stable enough for production.
 
