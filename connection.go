@@ -329,14 +329,14 @@ func (c *Connection) Fetch(bucket string, key string) (*Object, error) {
 		return nil, err
 	}
 	return &Object{
-			Bucket : bucket,
-			Key : key,
-			ContentType : response.Header.Get("Content-Type"),
-			vClock : response.Header.Get("X-Riak-Vclock"),
-			lastModified : response.Header.Get("Last-Modified"),
-			eTag : response.Header.Get("Etag"),
-			link : response.Header.Get("Link"),
-			Value : b,
+		Bucket:       bucket,
+		Key:          key,
+		ContentType:  response.Header.Get("Content-Type"),
+		vClock:       response.Header.Get("X-Riak-Vclock"),
+		lastModified: response.Header.Get("Last-Modified"),
+		eTag:         response.Header.Get("Etag"),
+		link:         response.Header.Get("Link"),
+		Value:        b,
 	}, nil
 }
 

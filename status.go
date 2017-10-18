@@ -31,7 +31,7 @@ type Status struct {
 	Nodename                 string
 	Connected_nodes          []string
 	Sys_driver_version       string
-	Sys_global_heaps_size    int
+	Sys_global_heaps_size    string
 	Sys_heap_type            string
 	Sys_logical_processors   int
 	Sys_otp_release          string
