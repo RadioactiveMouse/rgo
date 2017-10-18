@@ -101,7 +101,7 @@ func TestNodeDelete(t *testing.T) {
 
 func TestNodeStore(t *testing.T) {
 	c := NewConnection(testAddress)
-	o := Object{ Bucket : "testOperations", Key : "fetch", Value : []byte("fetchstoretestvalue"),}
+	o := Object{Bucket: "testOperations", Key: "fetch", Value: []byte("fetchstoretestvalue")}
 	err := c.Store(o)
 	if err != nil {
 		t.Error(err)
